@@ -1,6 +1,11 @@
 {
-  "name": "@codecrafters/kafka",
+  "name": "build-your-own-kafka",
+  "description": "Kafka clone built for profit and glory...erm practice [using https://codecrafters.io/]",
   "version": "1.0.0",
   "type": "module",
+  "repository": "https://github.com/bryan-eslinger/kundera",
+  "author": "Bryan Eslinger <bryan.eslinger@protonmail.com>",
+  "license": "GPL-3.0-or-later",
+  "private": false,
   "dependencies": {}
 }

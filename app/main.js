@@ -34,4 +34,6 @@ const server = net.createServer((socket) => {
     });
 });
 
-server.listen(9092, "127.0.0.1");
+server.listen(9092, "127.0.0.1", () => {
+    console.log("Server listening at tcp://localhost:9092")
+});
