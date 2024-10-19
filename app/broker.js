@@ -15,10 +15,6 @@ class Kundera {
     }
 
     onConnection = (socket) => {
-        socket.on("connection", () => {
-            console.debug("new connection");
-        })
-    
         socket.on("data", (data) => {
             console.debug("data received");
             // TODO error handling for totally malformed requests
