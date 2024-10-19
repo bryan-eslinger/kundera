@@ -1,39 +1,13 @@
-import net from "net";
+import createBroker from "./broker.js";
+import apiKeys from "./api_keys.js";
+import { ApiVersionsBody } from "./message_bodies.js";
 
-import Response from "./response.js";
-import Request from "./request.js";
+const { server } = createBroker();
 
-function handleError(response, err) {
-    console.debug('handling error', err);
-    switch(err.message) {
-        case 'InvalidRequest':
-            response.sendError(err.code);
-            break;
-        default:
-            response.sendError(-1);
-    }
-}
-
-const server = net.createServer((socket) => {
-    socket.on("connection", (socket) => {
-        console.debug("new connection")
-    })
-
-    socket.on("data", (data) => {
-        console.debug("data received");
-        const request = new Request(data);
-        const response = new Response(request.correlationId);
-
-        try {
-            request.validate()
-        } catch (err) {
-            handleError(response, err)
-        }
-
-        socket.end(response.toBuffer());
-    });
-});
+server.handle(apiKeys.API_VERSIONS, (_, res) => {
+    res.send(new ApiVersionsBody());
+})
 
 server.listen(9092, "127.0.0.1", () => {
-    console.log("Server listening at tcp://localhost:9092")
+    console.log("Server listening at tcp://localhost:9092");
 });

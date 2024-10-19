@@ -1,20 +1,22 @@
+import { Int32Field, MessageLength, StructField } from "./serializer.js";
+
 export default class Response {
-    constructor(correlationId) {
-      this.correlationId = correlationId;
-      this.messageLength = Buffer.alloc(4);
-      this.message = Buffer.from([]);
+    constructor(request, socket) {
+        this.request = request;
+        this.socket = socket;
+        this.headers = new StructField({
+            correlationId: request.correlationId
+        }, ['correlationId'], [Int32Field])
     }
 
-    sendError(code) {
-      this.message = Buffer.alloc(2);
-      this.message.writeInt16BE(code);
+    get correlationId() {
+        return this.request.correlationId;
     }
-  
-    toBuffer() {
-      const correlationId = Buffer.alloc(4);
-      correlationId.writeInt32BE(this.correlationId);
-      const body = Buffer.concat([correlationId, this.message])
-      this.messageLength.writeInt32BE(body.length);
-      return Buffer.concat([this.messageLength, body]);
+
+    send(messageBody) {
+        const message = Buffer.alloc(this.headers.size + messageBody.size);
+        this.headers.serializeInto(message, 0);
+        messageBody.serializeInto(message, this.headers.size);
+        this.socket.end(Buffer.concat([MessageLength.serializeFor(message), message]));
     }
 }
