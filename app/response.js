@@ -17,6 +17,6 @@ export default class Response {
         const message = Buffer.alloc(this.headers.size + messageBody.size);
         this.headers.serializeInto(message, 0);
         messageBody.serializeInto(message, this.headers.size);
-        this.socket.end(Buffer.concat([MessageLength.serializeFor(message), message]));
+        this.socket.write(Buffer.concat([MessageLength.serializeFor(message), message]));
     }
 }
