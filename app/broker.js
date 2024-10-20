@@ -1,6 +1,6 @@
 import net from "net";
 
-import Response from "./response.js";
+import Response, { headerVersions } from "./response.js";
 import Request from "./request.js";
 import { errorCodes } from "./error.js";
 import { ErrorResponse } from "./messages/error/schema.js";
@@ -31,12 +31,14 @@ class Kundera {
                     default:
                         errorCode = errorCodes.UNKNOWN_SERVER_ERROR;
                 }
+                response.headers(headerVersions.V0);
                 response.send(new ErrorResponse({ errorCode }));
                 return;
             }
 
             const handler = this.handlers[request.requestApiKey];
             if (!handler) {
+                response.headers(headerVersions.V0);
                 response.send(new ErrorResponse({ errorCode: errorCodes.RESOURCE_NOT_FOUND }));
                 return;
             }

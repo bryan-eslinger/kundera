@@ -1,8 +1,10 @@
 import apiKeys from "../../api_keys.js";
 import { errorCodes } from "../../error.js";
+import { headerVersions } from "../../response.js";
 import ApiVersionsBody from "./schema.js";
 
 const apiVersions = (_, res) => {
+    res.headers(headerVersions.V0);
     // TODO does this stuff want to be read in from config?
     res.send(new ApiVersionsBody({
         errorCode: errorCodes.NO_ERROR,

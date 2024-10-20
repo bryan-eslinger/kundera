@@ -1,5 +1,12 @@
 import { errorCodes } from "./error.js";
-import { Int16Field, Int32Field, StructField } from "./serializer.js";
+import RequestSchemas from "./messages/request_schemas.js";
+import {
+    Int16Field,
+    Int32Field,
+    NullableStringField,
+    StructField,
+    TaggedFields
+} from "./serializer.js";
 
 class InvalidRequestError extends Error {
     constructor(code) {
@@ -8,23 +15,55 @@ class InvalidRequestError extends Error {
     }
 }
 
+// TODO: need to work out handling multiple API versions cleanly
+class Headers {
+    schema = new StructField([
+        ['requestApiKey', Int16Field],
+        ['requestApiVersion', Int16Field],
+        ['correlationId', Int32Field],
+        ['clientId', NullableStringField],
+        ['_taggedFields', TaggedFields]
+    ]);
+
+    constructor() {
+        this.size = null;
+    }
+
+    deserialize(buffer, offset) {
+        const { value, size } = this.schema.deserialize(buffer, offset);
+        this.size = size;
+        return value;
+    }
+}
+
 export default class Request {
+    #_body = null;
     #_headers = null;
     #_length = null;
     #headersField;
     #lengthField;
 
     constructor(data) {
-        this.data = data;
+        this.rawData = data;
         this.#lengthField = Int32Field;
         // TODO: support client_id and tagged_fields fields
-        this.#headersField = new StructField([
-            ['requestApiKey', Int16Field],
-            ['requestApiVersion', Int16Field],
-            ['correlationId', Int32Field]
-        ]);
+        this.#headersField = new Headers();
         console.debug('Request headers');
         console.debug(this.headers);
+
+        console.debug('Request body');
+        console.debug(this.body);
+    }
+
+    get body() {
+        if (this.#_body === null) {
+            const schema = new RequestSchemas[this.requestApiKey]()
+            this.#_body =schema.deserialize(
+                this.rawData,
+                this.#lengthField.size + this.#headersField.size
+            );
+        }
+        return this.#_body
     }
 
     get correlationId() {
@@ -34,7 +73,7 @@ export default class Request {
     get headers() {
         if (this.#_headers === null) {
             this.#_headers = this.#headersField.deserialize(
-                this.data,
+                this.rawData,
                 this.#lengthField.size
             );
         }
@@ -43,7 +82,7 @@ export default class Request {
 
     get length() {
         if (this.#_length === null) {
-            this.#_length = this.#lengthField.deserialize(this.data);
+            this.#_length = this.#lengthField.deserialize(this.rawData).value;
         }
         return this.#_length;
     }
