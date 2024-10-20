@@ -16,13 +16,15 @@ export default class Request {
 
     constructor(data) {
         this.data = data;
-        this.#lengthField = new Int32Field();
+        this.#lengthField = Int32Field;
         // TODO: support client_id and tagged_fields fields
-        this.#headersField = new StructField(
-            {},
-            ['requestApiKey', 'requestApiVersion', 'correlationId'],
-            [Int16Field, Int16Field, Int32Field]
-        );
+        this.#headersField = new StructField([
+            ['requestApiKey', Int16Field],
+            ['requestApiVersion', Int16Field],
+            ['correlationId', Int32Field]
+        ]);
+        console.debug('Request headers');
+        console.debug(this.headers);
     }
 
     get correlationId() {
@@ -54,7 +56,8 @@ export default class Request {
         return this.headers.requestApiVersion;
     }
 
-    // TODO think through return structure if ever handling multiple validations
+    // TODO think through return structure when handling multiple validations
+    // e.g. length
     validate() {
         return this.#validateApiVersion()
     }

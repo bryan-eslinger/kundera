@@ -1,116 +1,136 @@
-export class MessageLength {
-    static serializeFor(message) {
+export class MessageLengthField {
+    static serialize(length) {
         const buffer = Buffer.alloc(4);
-        buffer.writeInt32BE(message.length);
+        buffer.writeInt32BE(length);
         return buffer;
     }
 }
 
-export class NullByteField {
-    serializeInto(buffer, offset) {
-        buffer.writeInt16BE(0, offset);
-        this.size = 2;
-    }
-}
-
 export class Int16Field {
-    constructor(value) {
-        this.value = value
-        this.size = 2;
+    static get size() {
+        return 2;
     }
 
-    serializeInto(buffer, offset) {
-        buffer.writeInt16BE(this.value, offset);
+    static serialize(value) {
+        const buffer = Buffer.alloc(this.size);
+        buffer.writeInt16BE(value);
+        return buffer;
     }
 
-    deserialize(buffer, offset) {
+    static deserialize(buffer, offset) {
         return buffer.readInt16BE(offset);
     }
 }
 
 export class Int32Field {
-    constructor(value) {
-        this.value = value;
-        this.size = 4;
+    static get size() {
+        return 4;
     }
 
-    serializeInto(buffer, offset) {
-        buffer.writeInt32BE(this.value, offset);
+    static serialize(value) {
+        const buffer = Buffer.alloc(this.size);
+        buffer.writeInt32BE(value);
+        return buffer;
     }
 
-    deserialize(buffer, offset) {
+    static deserialize(buffer, offset) {
         return buffer.readInt32BE(offset);
     }
 }
 
 export class UInt32Field {
-    constructor(value) {
-        this.value = value;
-        this.size = 4;
+    static get size() {
+        return 4;
     }
 
-    serializeInto(buffer, offset) {
-        buffer.writeUInt32BE(this.value, offset);
+    serialize(value) {
+        const buffer = buffer.alloc(this.size);
+        buffer.writeUInt32BE(value);
+        return buffer;
     }
 }
 
+export class UVarIntField {
+    // TODO: handle size calculations for VarInt*Fields
+    static serialize(value) {
+        const result = [];
+        while (value > 127) {
+            result.push((value & 127) | 128);
+            value >>>= 7;
+        }
+        result.push(value);
+        return Buffer.from(result);
+    }
+
+    // TODO: deserialize
+}
+
 export class StructField {
-    constructor(value, attributes, attributeTypes) {
-        this.attributes = attributes;
-        this.attributeTypes = attributeTypes;
-        this.value = value;
+    constructor(fields) {
+        this.fields = new Map();
+        for (const [attr, field] of fields) {
+            this.fields.set(attr, field)
+        }
     }
 
     get size() {
-        return this.iterAttributes().reduce((sum, [_, field, __]) => sum + field.size, 0);
+        return this.fields.reduce((sum, [_, field]) => sum + field.size, 0);
     }
 
-    // TODO make this a generator
-    iterAttributes() {
-        let fieldOffset = 0;
-        return this.attributeTypes.map((Type, idx) => {
-            const field = new Type(this.value[this.attributes[idx]])
-            const res = [this.attributes[idx], field, fieldOffset];
-            fieldOffset += field.size;
-
-            return res;
-        });
-    }
-
-    serializeInto(buffer, offset) {
-        for (const [_, field, fieldOffset] of this.iterAttributes()) {
-            field.serializeInto(buffer, offset + fieldOffset)
+    serialize(value) {
+        const fields = [];
+        for (const [attr, field] of this.fields) {
+            fields.push(field.serialize(value[attr]));
         }
+        return Buffer.concat(fields);
     }
 
     deserialize(buffer, offset) {
-        for (const [attribute, field, fieldOffset] of this.iterAttributes()) {
-            this.value[attribute] = field.deserialize(buffer, offset + fieldOffset)
+        const value = {};
+        let fieldOffset = offset;
+        for (const [attr, field] of this.fields) {
+            value[attr] = field.deserialize(buffer, fieldOffset);
+            fieldOffset += field.size;
         }
 
-        return this.value;
+        return value;
     }
-
 }
 
 // TODO: null arrays get -1 length field
 export class ArrayField {
-    constructor(elements, elementType) {
+    constructor(elementType) {
         this.elementType = elementType;
-        this.elements = elements;
-
-        this.size = elements.length * elementType.size + 1;
     }
 
-    serializeInto(buffer, offset) {
-        buffer.writeUInt8(this.elements.length, offset);
-        this.elements.forEach((element, idx) => {
-            if (this.elementType instanceof StructField) {
-                this.elementType.value = element;
-                this.elementType.serializeInto(buffer, offset + 1 + idx * this.elementType.size);
-            } else {
-                element.serializeInto(buffer, offset + 1 + idx * this.elementType.size);
-            }
-        });
+    // TODO size and deserialize
+    serialize(value) {
+        return Buffer.concat([
+            Int32Field.serialize(value.length),
+            ...value.map(this.elementType.serialize.bind(this.elementType))
+        ])
+    }
+}
+
+// TODO: null arrays get -1 length field
+export class CompactArrayField {
+    constructor(elementType) {
+        this.elementType = elementType;
+    }
+
+    serialize(value) {
+        return Buffer.concat([
+            UVarIntField.serialize(value.length + 1),
+            ...value.map(this.elementType.serialize.bind(this.elementType))  
+        ])
+    }
+}
+
+// TODO support tagged fields
+export class TaggedFields {
+    static serialize() {
+        const buffer = Buffer.alloc(1);
+        buffer.writeInt8(0);
+        return buffer;
     }
 }

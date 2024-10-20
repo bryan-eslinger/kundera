@@ -3,7 +3,7 @@ import net from "net";
 import Response from "./response.js";
 import Request from "./request.js";
 import { errorCodes } from "./error.js";
-import { ErrorOnlyBody } from "./message_bodies.js";
+import { ErrorResponse } from "./messages/error/schema.js";
 
 class Kundera {
     constructor() {
@@ -31,13 +31,13 @@ class Kundera {
                     default:
                         errorCode = errorCodes.UNKNOWN_SERVER_ERROR;
                 }
-                response.send(new ErrorOnlyBody(errorCode));
+                response.send(new ErrorResponse({ errorCode }));
                 return;
             }
 
             const handler = this.handlers[request.requestApiKey];
             if (!handler) {
-                response.send(new ErrorOnlyBody(errorCodes.RESOURCE_NOT_FOUND));
+                response.send(new ErrorResponse({ errorCode: errorCodes.RESOURCE_NOT_FOUND }));
                 return;
             }
     
