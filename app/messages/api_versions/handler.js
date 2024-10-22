@@ -9,6 +9,10 @@ const apiVersions = (_, res) => {
     res.send(new ApiVersionsBody({
         errorCode: errorCodes.NO_ERROR,
         apiKeys: [{
+            apiKey: apiKeys.FETCH,
+            minVersion: 0,
+            maxVersion: 16,
+        },{
             apiKey: apiKeys.API_VERSIONS,
             minVersion: 0,
             maxVersion: 4,
