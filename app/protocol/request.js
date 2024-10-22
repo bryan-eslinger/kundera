@@ -2,6 +2,7 @@ import { errorCodes } from "../error.js";
 import Headers from "../protocol/fields/request/headers_v0.js";
 import RequestSchemas from "../messages/request_schemas.js";
 import MessageLengthField from "./fields/message_length.js";
+import { getApiVersionByKey } from "../config/api_versions.js";
 
 class InvalidRequestError extends Error {
     constructor(code) {
@@ -78,7 +79,11 @@ export default class Request {
     // TODO think through a runtime config option for this
     // -> see also message_bodies.js / the APIVersions response
     #validateApiVersion() {
-        if (this.requestApiVersion > 4 || this.requestApiVersion < 0) {
+        const apiVersionConfig = getApiVersionByKey(this.requestApiKey)
+        if (
+            this.requestApiVersion > apiVersionConfig.maxVersion || 
+            this.requestApiVersion < apiVersionConfig.minVersion
+        ) {
             return new InvalidRequestError(errorCodes.UNSUPPORTED_VERSION);
         }
     }

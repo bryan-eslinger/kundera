@@ -1,4 +1,4 @@
-import apiKeys from "../../api_keys.js";
+import apiVersionsConfig from "../../config/api_versions.js";
 import { errorCodes } from "../../error.js";
 import { headerVersions } from "../../protocol/fields/response/index.js";
 import ApiVersionsBody from "./schema.js";
@@ -8,21 +8,7 @@ const apiVersions = (_, res) => {
     // TODO does this stuff want to be read in from config?
     res.send(new ApiVersionsBody({
         errorCode: errorCodes.NO_ERROR,
-        apiKeys: [{
-            apiKey: apiKeys.FETCH,
-            minVersion: 0,
-            maxVersion: 16,
-        },{
-            apiKey: apiKeys.API_VERSIONS,
-            minVersion: 0,
-            maxVersion: 4,
-            _taggedFields: [],
-        }, {
-            apiKey: apiKeys.DESCRIBE_TOPIC_PARTITIONS,
-            minVersion: 0,
-            maxVersion: 0,
-            _taggedFields: [],
-        }],
+        apiKeys: apiVersionsConfig,
         // TODO set this on the response object based on actual server behavior
         throttleTimeMs: 0,
         _taggedFields: []
