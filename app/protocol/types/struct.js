@@ -19,12 +19,11 @@ export default class Struct {
         const value = {};
         let fieldOffset = offset;
         for (const [attr, field] of this.fields) {
-            console.log(attr)
+            console.debug(attr)
             const { value: fieldValue, size } = field.deserialize(buffer, fieldOffset);
             value[attr] = fieldValue;
             fieldOffset += size;
         }
-        // console.log(`deserialized STRUCT from bytes ${offset} to ${fieldOffset}`)
         return { value, size: fieldOffset - offset }
     }
 }
