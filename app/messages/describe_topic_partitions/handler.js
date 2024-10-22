@@ -1,9 +1,8 @@
+import { CLUSTER_METADATA_LOGFILE } from "../../config/logs.js";
 import { errorCodes } from "../../error.js";
 import { headerVersions } from "../../protocol/fields/response/index.js";
 import DescribeTopicPartitionsBody from "./schema.js";
 import { metaDataRecordTypeKeys, readLog } from "../../storage/log.js";
-
-const CLUSTER_METADATA_LOGFILE = '/tmp/kraft-combined-logs/__cluster_metadata-0/00000000000000000000.log'
 
 const describeTopicPartitions = (req, res) => {
     res.headers(headerVersions.V1);
