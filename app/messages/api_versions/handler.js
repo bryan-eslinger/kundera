@@ -1,6 +1,6 @@
 import apiKeys from "../../api_keys.js";
 import { errorCodes } from "../../error.js";
-import { headerVersions } from "../../response.js";
+import { headerVersions } from "../../protocol/fields/response/index.js";
 import ApiVersionsBody from "./schema.js";
 
 const apiVersions = (_, res) => {

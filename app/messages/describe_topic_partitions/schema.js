@@ -1,15 +1,13 @@
-import {
-    BooleanField,
-    CompactArrayField,
-    CompactNullableStringField,
-    CompactStringField,
-    Int16Field,
-    Int32Field,
-    NullableStructField,
-    StructField,
-    TaggedFields,
-    UuidField,
-} from "../../serializer.js";
+import BooleanField from "../../protocol/types/boolean.js";
+import CompactArrayField from "../../protocol/types/compact_array.js";
+import CompactNullableStringField from "../../protocol/types/compact_nullable_string.js";
+import CompactStringField from "../../protocol/types/compact_string.js";
+import Int16Field from "../../protocol/types/int16.js";
+import Int32Field from "../../protocol/types/int32.js";
+import NullableStructField from "../../protocol/types/nullable_struct.js";
+import StructField from "../../protocol/types/struct.js";
+import TaggedFields from "../../protocol/fields/tagged_fields.js";
+import UuidField from "../../protocol/types/uuid.js";
 
 export default class DescribeTopicPartitionsResponse {
     schema = new StructField([
@@ -24,15 +22,15 @@ export default class DescribeTopicPartitionsResponse {
                 ['partitionIndex', Int32Field],
                 ['leaderId', Int32Field],
                 ['leaderEpoch', Int32Field],
-                ['replicaNodes', Int32Field],
-                ['isrNodes', Int32Field],
-                ['eligibleLeaderReplicas', Int32Field],
-                ['lastKnownElr', Int32Field],
-                ['offlineReplicas', Int32Field],
+                ['replicaNodes', new CompactArrayField(Int32Field)],
+                ['isrNodes', new CompactArrayField(Int32Field)],
+                ['eligibleLeaderReplicas', new CompactArrayField(Int32Field)],
+                ['lastKnownElr', new CompactArrayField(Int32Field)],
+                ['offlineReplicas', new CompactArrayField(Int32Field)],
                 ['_taggedField', TaggedFields],
             ]))],
             ['topicAuthorizedOperations', Int32Field],
-            ['_taggedField', TaggedFields],
+            ['_taggedFields', TaggedFields],
         ]))],
         ['nextCursor', new NullableStructField([
             ['topicName', CompactStringField],

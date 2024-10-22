@@ -1,8 +1,6 @@
-import {
-    CompactStringField,
-    StructField,
-    TaggedFields
-} from "../../serializer.js";
+import CompactStringField from "../../protocol/types/compact_string.js";
+import StructField from "../../protocol/types/struct.js";
+import TaggedFields from "../../protocol/fields/tagged_fields.js";
 
 export default class ApiVersionsRequest {
     schema = new StructField([

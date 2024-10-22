@@ -1,6 +1,7 @@
-import { Int16Field, StructField } from "../../serializer.js";
+import Int16Field from "../../protocol/types/int16.js";
+import StructField from "../../protocol/types/struct.js";
 
-export class ErrorResponse {
+export default class ErrorResponse {
     schema = new StructField([
         ['errorCode', Int16Field],
     ]);

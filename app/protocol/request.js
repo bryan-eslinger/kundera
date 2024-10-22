@@ -1,38 +1,12 @@
-import { errorCodes } from "./error.js";
-import RequestSchemas from "./messages/request_schemas.js";
-import {
-    Int16Field,
-    Int32Field,
-    NullableStringField,
-    StructField,
-    TaggedFields
-} from "./serializer.js";
+import { errorCodes } from "../error.js";
+import Headers from "../protocol/fields/request/headers_v0.js";
+import RequestSchemas from "../messages/request_schemas.js";
+import MessageLengthField from "./fields/message_length.js";
 
 class InvalidRequestError extends Error {
     constructor(code) {
         super('InvalidRequest')
         this.code = code;
-    }
-}
-
-// TODO: need to work out handling multiple API versions cleanly
-class Headers {
-    schema = new StructField([
-        ['requestApiKey', Int16Field],
-        ['requestApiVersion', Int16Field],
-        ['correlationId', Int32Field],
-        ['clientId', NullableStringField],
-        ['_taggedFields', TaggedFields]
-    ]);
-
-    constructor() {
-        this.size = null;
-    }
-
-    deserialize(buffer, offset) {
-        const { value, size } = this.schema.deserialize(buffer, offset);
-        this.size = size;
-        return value;
     }
 }
 
@@ -45,7 +19,7 @@ export default class Request {
 
     constructor(data) {
         this.rawData = data;
-        this.#lengthField = Int32Field;
+        this.#lengthField = MessageLengthField;
         // TODO: support client_id and tagged_fields fields
         this.#headersField = new Headers();
         console.debug('Request headers');

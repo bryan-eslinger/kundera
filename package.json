@@ -1,5 +1,5 @@
 {
-  "name": "build-your-own-kafka",
+  "name": "kundera",
   "description": "Kafka clone built for profit and glory...erm practice [using https://codecrafters.io/]",
   "version": "1.0.0",
   "type": "module",
@@ -7,5 +7,14 @@
   "author": "Bryan Eslinger <bryan.eslinger@protonmail.com>",
   "license": "GPL-3.0-or-later",
   "private": false,
-  "dependencies": {}
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "scripts": {
+    "dev": "node app/index.js",
+    "test": "node --experimental-vm-modules --no-warnings node_modules/jest/bin/jest.js --coverage"
+  },
+  "jest": {
+    "transform": {}
+  }
 }

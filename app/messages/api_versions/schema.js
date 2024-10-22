@@ -1,10 +1,9 @@
-import {
-    CompactArrayField,
-    Int16Field,
-    Int32Field,
-    StructField,
-    TaggedFields,
-} from "../../serializer.js";
+import CompactArrayField from "../../protocol/types/compact_array.js";
+import Int16Field from "../../protocol/types/int16.js";
+import Int32Field from "../../protocol/types/int32.js";
+import StructField from "../../protocol/types/struct.js";
+import TaggedFields from "../../protocol/fields/tagged_fields.js";
+
 
 export default class ApiVersionsResponse {
     schema = new StructField([

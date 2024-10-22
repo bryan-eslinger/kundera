@@ -1,9 +1,10 @@
 import net from "net";
 
-import Response, { headerVersions } from "./response.js";
-import Request from "./request.js";
+import { headerVersions } from "./protocol/fields/response/index.js";
+import Response from "./protocol/response.js";
+import Request from "./protocol/request.js";
 import { errorCodes } from "./error.js";
-import { ErrorResponse } from "./messages/error/schema.js";
+import ErrorResponse from "./messages/error/schema.js";
 
 class Kundera {
     constructor() {
