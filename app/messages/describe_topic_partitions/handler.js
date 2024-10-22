@@ -24,7 +24,6 @@ const describeTopicPartitions = (req, res) => {
             }
         }
         
-        // TODO actually look for the topic and partition data
         res.send(new DescribeTopicPartitionsBody({
             throttleTimeMs: 0,
             topics: req.body.topics.map((topic) => {
@@ -45,17 +44,19 @@ const describeTopicPartitions = (req, res) => {
                     name: topic.name,
                     topicId: topicRecord.recordValue.topicId,
                     isInternal: false,
-                    partitions: partitionRecords[topicRecord.recordValue.topicId].map(record => ({
-                        errorCode: errorCodes.NO_ERROR,
-                        partitionIndex: record.recordValue.partitionId,
-                        leaderId: record.recordValue.leader,
-                        leaderEpoch: record.recordValue.leaderEpoch,
-                        replicaNodes: record.recordValue.replicas,
-                        isrNodes: record.recordValue.isr,
-                        eligibleLeaderReplicas: record.recordValue.eligibleLeaderReplicas,
-                        lastKnownElr: record.recordValue.lastKnownElr,
-                        offlineReplicas: [], // TODO get the actual values
-                    })),
+                    partitions: partitionRecords[topicRecord.recordValue.topicId]
+                        .sort((a, b) => a.recordValue.partitionId - b.recordValue.partitionId)
+                        .map(record => ({
+                            errorCode: errorCodes.NO_ERROR,
+                            partitionIndex: record.recordValue.partitionId,
+                            leaderId: record.recordValue.leader,
+                            leaderEpoch: record.recordValue.leaderEpoch,
+                            replicaNodes: record.recordValue.replicas,
+                            isrNodes: record.recordValue.isr,
+                            eligibleLeaderReplicas: record.recordValue.eligibleLeaderReplicas,
+                            lastKnownElr: record.recordValue.lastKnownElr,
+                            offlineReplicas: [], // TODO get the actual values
+                        })),
                     topicAuthorizedOperations: 0, // TODO get the actual values,
                 }
             }),
