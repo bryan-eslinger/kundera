@@ -10,6 +10,7 @@ export default class Struct {
     serialize(value) {
         const fields = [];
         for (const [attr, field] of this.fields) {
+            console.debug(attr);
             fields.push(field.serialize(value[attr]));
         }
         return Buffer.concat(fields);

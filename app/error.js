@@ -4,4 +4,5 @@ export const errorCodes = {
     UNKNOWN_TOPIC_OR_PARTITION: 3,
     UNSUPPORTED_VERSION: 35,
     RESOURCE_NOT_FOUND: 91,
+    UNKNOWN_TOPIC: 100
 }
