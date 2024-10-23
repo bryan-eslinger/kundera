@@ -1,3 +1,3 @@
 #!/usr/bin/env -S node
 
-import './app/main.js';
+import './app/index.js';

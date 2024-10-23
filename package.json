@@ -1,6 +1,6 @@
 {
   "name": "kundera",
-  "description": "Kafka clone built for profit and glory...erm practice [using https://codecrafters.io/]",
+  "description": "Kafka clone built for profit and glory...erm practice [started with https://codecrafters.io/]",
   "version": "1.0.0",
   "type": "module",
   "repository": "https://github.com/bryan-eslinger/kundera",
@@ -8,13 +8,18 @@
   "license": "GPL-3.0-or-later",
   "private": false,
   "devDependencies": {
-    "jest": "^29.7.0"
+    "jest": "^29.7.0",
+    "nodemon": "^3.1.7"
   },
   "scripts": {
-    "dev": "node app/index.js",
+    "dev": "nodemon --inspect app/index.js",
+    "start": "./index.js",
     "test": "node --experimental-vm-modules --no-warnings node_modules/jest/bin/jest.js --coverage"
   },
   "jest": {
     "transform": {}
+  },
+  "nodemonConfig": {
+    "ignore": ["**/*.test.js", "package.json"]
   }
 }
