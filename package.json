@@ -20,6 +20,12 @@
     "transform": {}
   },
   "nodemonConfig": {
-    "ignore": ["**/*.test.js", "package.json"]
+    "ignore": [
+      "**/*.test.js",
+      "package.json"
+    ]
+  },
+  "dependencies": {
+    "yaml": "^2.6.0"
   }
 }

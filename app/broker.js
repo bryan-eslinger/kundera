@@ -1,15 +1,17 @@
-import net from "net";
+import { createServer } from "net";
 
 import { headerVersions } from "./protocol/fields/response/index.js";
 import Response from "./protocol/response.js";
 import Request from "./protocol/request.js";
 import { errorCodes } from "./error.js";
 import ErrorResponse from "./messages/error/schema.js";
+import config from "./config/index.js";
 
 class Kundera {
     constructor() {
-        this.server = net.createServer(this.onConnection);
+        this.config = config();
         this.handlers = {}
+        this.server = createServer(this.onConnection);
         this.server.handle = (apiKey, handler) => {
             this.handlers[apiKey] = handler;
         }
