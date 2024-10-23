@@ -1,17 +1,16 @@
-import { CLUSTER_METADATA_LOGFILE } from "../../config/logs.js";
 import { errorCodes } from "../../error.js";
 import { headerVersions } from "../../protocol/fields/response/index.js";
 import DescribeTopicPartitionsBody from "./schema.js";
-import { metaDataRecordTypeKeys, readLog } from "../../storage/log.js";
+import { metaDataRecordTypeKeys } from "../../storage/log.js";
+import broker from "../../index.js";
 
 const describeTopicPartitions = (req, res) => {
     res.headers(headerVersions.V1);
-
-    const records = readLog(CLUSTER_METADATA_LOGFILE);
+    
     const topicRecords = {};
     const partitionRecords = {};
 
-    for (let record of records) {
+    for (let record of broker.metadata.records) {
         switch(record.recordType) {
             case metaDataRecordTypeKeys.TOPIC_RECORD:
                 topicRecords[record.recordValue.name] = record;

@@ -1,16 +1,18 @@
 import { createServer } from "net";
 
-import { headerVersions } from "./protocol/fields/response/index.js";
-import Response from "./protocol/response.js";
-import Request from "./protocol/request.js";
-import { errorCodes } from "./error.js";
-import ErrorResponse from "./messages/error/schema.js";
-import config from "./config/index.js";
+import { headerVersions } from "../protocol/fields/response/index.js";
+import Response from "../protocol/response.js";
+import Request from "../protocol/request.js";
+import { errorCodes } from "../error.js";
+import ErrorResponse from "../messages/error/schema.js";
+import config from "../config/index.js";
+import Metadata from "./metadata.js";
 
 class Kundera {
     constructor() {
         this.config = config();
         this.handlers = {}
+        this.metadata = new Metadata();
         this.server = createServer(this.onConnection);
         this.server.handle = (apiKey, handler) => {
             this.handlers[apiKey] = handler;

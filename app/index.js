@@ -1,5 +1,5 @@
 import apiKeys from "./api_keys.js";
-import createBroker from "./broker.js";
+import createBroker from "./broker/index.js";
 import apiVersionsHandler from "./messages/api_versions/handler.js";
 import describeTopicPartitionsHandler from "./messages/describe_topic_partitions/handler.js";
 import fetchHandler from "./messages/fetch/handler.js";
