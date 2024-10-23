@@ -1,8 +1,12 @@
-import { readFile } from "node:fs";
+import { readFileSync } from "node:fs";
 import VarIntField from "../protocol/types/var_int.js"
 import TopicRecord from "../metadata/topic_record.js";
 import FeatureLevelRecord from "../metadata/feature_level.js";
 import PartitionRecord from "../metadata/partition.js";
+import { CLUSTER_METADATA_LOGFILE, LOG_DIR } from "../config/logs.js";
+
+// TODO look into zero-copy optimizations with Node and make sure the
+// fetch responses are being zero-copied
 
 // TODO this stuff probably wants to be more specific to metadata logs
 // this log module probably wants to handle more about replication?
@@ -41,35 +45,71 @@ const metaDataRecordTypes = {
     [metaDataRecordTypeKeys.TOPIC_RECORD]: TopicRecord,
 }
 
-export const readLog = async (logFile) => {
-    return new Promise((resolve, reject) => {
-        console.debug(`reading ${logFile}`)
-        readFile(logFile, (err, data) => {
-            if (err) {
-                console.err(err);
-                reject(err);
-            }
-            
-            resolve(data);
-        });
-    }).then((data) => {
-        const records = [];
-        let offset = 0;
-        while (offset < data.length) {
-            // TODO handle malformed logs?
-            offset += 8; // base offset
-            
-            const batchLength = data.readInt32BE(offset);
-            offset += 4;
-            
-            records.push(readBatch(data.subarray(offset, offset + batchLength)))
-            offset += batchLength;
-        }
-        return records.flat();
-    });
+export class UnknownTopicError extends Error {
+    constructor(topicName) {
+        super(`UnknownTopic: ${topicName}`);
+    }
 }
 
-export const readBatch = (data) => {
+// TODO: take advantage of readFile async version to be able to
+// parallelize calls to readLogs
+export const readLogs = (topicId, partition) => {
+    console.debug(`reading logs for ${topicId}`)
+    const topicName = getTopicName(topicId);
+
+    if (!topicName) {
+        return { err: new UnknownTopicError(), records: null };
+    }
+
+    // TODO read latest log file; this assumes only one per partition with no rolling
+    const records = readLog(`${LOG_DIR}/${getTopicName(topicId)}-${partition}/00000000000000000000.log`, false)
+    // TODO introduce a deserializeRecordValue flag to readLog/readBatch/readRecord, set to false
+    // int this call and return the actual recordValue byte array
+    return { err: null, records };
+}
+
+// TODO better caching
+let TOPIC_NAMES = null;
+const getTopicName = (topicId) => {
+    console.debug(`resolving topic name for ${topicId}`);
+    if (TOPIC_NAMES === null) {
+        const records = readLog(CLUSTER_METADATA_LOGFILE);
+        TOPIC_NAMES = Object.fromEntries(
+            records
+                .filter(record => record.recordType === metaDataRecordTypeKeys.TOPIC_RECORD)
+                .map(topicRecord => [topicRecord.recordValue.topicId, topicRecord.recordValue.name])
+        );
+    }
+
+    return TOPIC_NAMES[topicId]
+}
+
+export const readLog = (logFile, deserializeRecords = true) => {
+    console.debug(`reading ${logFile}`);
+    // TODO error handling
+    const data = readFileSync(logFile);
+
+    if (!deserializeRecords) { return data }
+    
+    const records = [];
+    let offset = 0;
+    while (offset < data.length) {
+        // TODO handle malformed logs?
+        offset += 8; // base offset
+        
+        const batchLength = data.readInt32BE(offset);
+        offset += 4;
+        
+        records.push(readBatch(
+            data.subarray(offset, offset + batchLength), 
+            deserializeRecords
+        ));
+        offset += batchLength;
+    }
+    return records.flat();
+}
+
+const readBatch = (data) => {
     const records = [];
 
     // TODO actual parser for when we actually need this stuff
@@ -90,7 +130,7 @@ export const readBatch = (data) => {
     let offset = 4 + recordsLengthStart;
     for (let i = 1; i <= recordsLength; i++) {
         const { value: recordLength, size: recordLengthSize } = VarIntField.deserialize(data, offset);
-        const start = offset + recordLengthSize
+        const start = offset + recordLengthSize;
         records.push(readRecord(data.subarray(start, start + recordLength)));
         offset += recordLengthSize + recordLength;
     }
@@ -99,7 +139,7 @@ export const readBatch = (data) => {
 
 // TODO schema for records --> first understand the different types of logs and whether
 // this applies to metadata logs specifically or more generally
-export const readRecord = (data) => {
+const readRecord = (data) => {
     const record = {};
     
     record.attributes = data.readInt8();
@@ -132,7 +172,8 @@ export const readRecord = (data) => {
     record.version = data.readInt8(offset++);
     
     record.recordValue = metaDataRecordTypes[record.recordType]
-        .deserialize(data, offset).value;
+        .deserialize(data, offset)
+        .value
 
     return record;
 }

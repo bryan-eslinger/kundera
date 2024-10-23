@@ -5,6 +5,7 @@ import Int64Field from "../../protocol/types/int64.js";
 import StructField from "../../protocol/types/struct.js";
 import TaggedFields from "../../protocol/fields/tagged_fields.js";
 import UuidField from "../../protocol/types/uuid.js";
+import CompactRecordsField from "../../protocol/types/compact_records.js";
 
 export default class FetchResponse {
     schema = new StructField([
@@ -25,7 +26,7 @@ export default class FetchResponse {
                     ['_taggedFields', TaggedFields],
                 ]))],
                 ['preferredReadReplica', Int32Field],
-                ['records', new CompactArrayField(Int16Field)], // TODO need a CompactRecords type and a NullableBytes type
+                ['records', CompactRecordsField],
                 ['_taggedFields', TaggedFields]
             ]))],
             ['_taggedFields', TaggedFields],
