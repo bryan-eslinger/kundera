@@ -1,6 +1,10 @@
 import apiKeys from "../api_keys.js";
 
 const apiVersions = [{
+    apiKey: apiKeys.CREATE_TOPICS,
+    minVersion: 7,
+    maxVersion: 7
+}, {
     apiKey: apiKeys.FETCH,
     minVersion: 0,
     maxVersion: 16,
@@ -8,12 +12,10 @@ const apiVersions = [{
     apiKey: apiKeys.API_VERSIONS,
     minVersion: 0,
     maxVersion: 4,
-    _taggedFields: [],
 }, {
     apiKey: apiKeys.DESCRIBE_TOPIC_PARTITIONS,
     minVersion: 0,
     maxVersion: 0,
-    _taggedFields: [],
 }]
 
 export const getApiVersionByKey = (key) => (

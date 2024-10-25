@@ -1,12 +1,15 @@
-import CompactArrayField from "../protocol/types/compact_array.js";
-import Int32Field from "../protocol/types/int32.js";
-import StructField from "../protocol/types/struct.js"
-import UuidField from "../protocol/types/uuid.js";
+import CompactArrayField from "../../protocol/types/compact_array.js";
+import Int32Field from "../../protocol/types/int32.js";
+import StructField from "../../protocol/types/struct.js"
+import UuidField from "../../protocol/types/uuid.js";
 
 export default class PartitionRecord {
     static deserialize(buffer, offset) {
-        const deserialized = this.schema.deserialize(buffer, offset);
-        return deserialized;
+        return this.schema.deserialize(buffer, offset);
+    }
+
+    static serialize(value) {
+        return this.schema.serialize(value);
     }
 }
 

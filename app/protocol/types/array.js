@@ -1,14 +1,14 @@
-import UVarInt from './u_var_int.js';
+import Int32 from "./int32.js";
 
-// TODO: null arrays get 0 length field
-export default class CompactArray {
+// TODO: null arrays get -1 length field
+export default class Array {
     constructor(elementType) {
         this.elementType = elementType;
     }
 
     serialize(value) {
         return Buffer.concat([
-            UVarInt.serialize(value.length + 1),
+            Int32.serialize(value.length),
             ...value.map(this.elementType.serialize.bind(this.elementType))  
         ])
     }
@@ -17,14 +17,12 @@ export default class CompactArray {
         const {
             value: length,
             size: lengthSize
-        } = UVarInt.deserialize(buffer, offset);
-
-        // console.log(`deserialized CompactArray length from bytes ${offset} to ${offset + lengthSize - 1}`)
+        } = Int32.deserialize(buffer, offset);
 
         let elementOffset = offset + lengthSize;
         const value = [];
-        // length - 1 because it's compact
-        for(let i = 0; i < length - 1; i++) {
+
+        for(let i = 0; i < length; i++) {
             const {
                 value: elValue,
                 size: elSize

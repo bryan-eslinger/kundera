@@ -1,7 +1,7 @@
 import { errorCodes } from "../../error.js";
 import { headerVersions } from "../../protocol/fields/response/index.js";
-import { readLogs } from "../../storage/log.js";
 import FetchResponse from "./schema.js";
+import broker from "../../broker/index.js"
 
 const fetchHandler = (req, res) => {
     res.headers(headerVersions.V1);
@@ -13,28 +13,44 @@ const fetchHandler = (req, res) => {
         // NOTE: this should really pull from req.body.topics
         // but it looks like the test request is coming in with
         // topics empty and this field populated instead
-        responses: req.body.forgottenTopicsData.map(topic => ({
-            topicId: topic.topicId,
-            partitions: topic.partitions.map(partition => {
-                const logs = readLogs(topic.topicId, partition);
+        responses: req.body.forgottenTopicsData.map(topic => {
+            const topicName = broker.metadata.getTopicName(topic.topicId);
+            if (!topicName) {
                 return {
                     partitionIndex: partition,
-                    // NOTE: at least for now, UnknownTopicError is the only error
-                    errorCode: !!logs.err ? errorCodes.UNKNOWN_TOPIC : errorCodes.NO_ERROR,
-                    // TODO read from logs
+                    // TODO error mapping / handling from the logcontroller
+                    errorCode: errorCodes.UNKNOWN_TOPIC,
                     highWatermark: 0,
-                    // TODO read from logs
                     lastStableOffset: 0,
-                    // TODO read from logs
                     logStartOffset: 0,
-                    // TODO read from logs
                     abortedTransactions: [],
-                    // TODO read from logs
                     preferredReadReplica: 0,
-                    records: logs.records
+                    records: []
                 }
-            })
-        }))
+            }
+            return {
+                topicId: topic.topicId,
+                partitions: topic.partitions.map(partition => {
+                    const logs = broker.logController.read(topic.topicId, partition);
+                    return {
+                        partitionIndex: partition,
+                        // TODO error mapping / handling from the logcontroller
+                        errorCode: !!logs.err ? errorCodes.UNKNOWN_SERVER_ERROR : errorCodes.NO_ERROR,
+                        // TODO read from logs
+                        highWatermark: 0,
+                        // TODO read from logs
+                        lastStableOffset: 0,
+                        // TODO read from logs
+                        logStartOffset: 0,
+                        // TODO read from logs
+                        abortedTransactions: [],
+                        // TODO read from logs
+                        preferredReadReplica: 0,
+                        records: logs.records
+                    }
+                })
+            }
+        })
     }));
 }
 

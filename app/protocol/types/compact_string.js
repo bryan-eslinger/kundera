@@ -21,7 +21,7 @@ export default class CompactString {
 
     static serialize(value) {
         return Buffer.concat([
-            UVarIntField.serialize(value.length + 1),
+            UVarInt.serialize(value.length + 1),
             Buffer.from(value)
         ]);
     }

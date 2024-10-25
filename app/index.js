@@ -1,12 +1,14 @@
 import apiKeys from "./api_keys.js";
 import createBroker from "./broker/index.js";
 import apiVersionsHandler from "./messages/api_versions/handler.js";
+import createTopicsHandler from "./messages/create_topics/handler.js";
 import describeTopicPartitionsHandler from "./messages/describe_topic_partitions/handler.js";
 import fetchHandler from "./messages/fetch/handler.js";
 
 const { broker, server } = createBroker();
 
 server.handle(apiKeys.API_VERSIONS, apiVersionsHandler);
+server.handle(apiKeys.CREATE_TOPICS, createTopicsHandler);
 server.handle(apiKeys.DESCRIBE_TOPIC_PARTITIONS, describeTopicPartitionsHandler);
 server.handle(apiKeys.FETCH, fetchHandler);
 

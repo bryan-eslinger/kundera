@@ -6,13 +6,15 @@ import Request from "../protocol/request.js";
 import { errorCodes } from "../error.js";
 import ErrorResponse from "../messages/error/schema.js";
 import config from "../config/index.js";
+import LogController from "../storage/log_controller.js";
 import Metadata from "./metadata.js";
 
 class Kundera {
     constructor() {
         this.config = config();
         this.handlers = {}
-        this.metadata = new Metadata();
+        this.logController = new LogController(this);
+        this.metadata = new Metadata(this.config.metadataTopic, this.logController);
         this.server = createServer(this.onConnection);
         this.server.handle = (apiKey, handler) => {
             this.handlers[apiKey] = handler;

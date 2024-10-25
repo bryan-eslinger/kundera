@@ -1,7 +1,7 @@
 import { errorCodes } from "../../error.js";
 import { headerVersions } from "../../protocol/fields/response/index.js";
 import DescribeTopicPartitionsBody from "./schema.js";
-import { metaDataRecordTypeKeys } from "../../storage/log.js";
+import { metaDataRecordTypeKeys } from "../../metadata/index.js";
 import broker from "../../index.js";
 
 const describeTopicPartitions = (req, res) => {

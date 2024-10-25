@@ -33,7 +33,7 @@ export default class Request {
     get body() {
         if (this.#_body === null) {
             const schema = new RequestSchemas[this.requestApiKey]()
-            this.#_body =schema.deserialize(
+            this.#_body = schema.deserialize(
                 this.rawData,
                 this.#lengthField.size + this.#headersField.size
             );
