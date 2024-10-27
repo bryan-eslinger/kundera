@@ -1,7 +1,7 @@
 import { errorCodes } from "../../error.js";
 import { headerVersions } from "../../protocol/fields/response/index.js";
 import FetchResponse from "./schema.js";
-import broker from "../../broker/index.js"
+import broker from "../../index.js"
 
 const fetchHandler = (req, res) => {
     res.headers(headerVersions.V1);
@@ -10,10 +10,7 @@ const fetchHandler = (req, res) => {
         throttleTimeMs: 0, // TODO take value from actual server behavior
         errorCode: errorCodes.NO_ERROR,
         sessionId: req.body.sessionId,
-        // NOTE: this should really pull from req.body.topics
-        // but it looks like the test request is coming in with
-        // topics empty and this field populated instead
-        responses: req.body.forgottenTopicsData.map(topic => {
+        responses: req.body.topics.map(topic => {
             const topicName = broker.metadata.getTopicName(topic.topicId);
             if (!topicName) {
                 return {
@@ -46,7 +43,7 @@ const fetchHandler = (req, res) => {
                         abortedTransactions: [],
                         // TODO read from logs
                         preferredReadReplica: 0,
-                        records: logs.records
+                        records: logs.data
                     }
                 })
             }

@@ -13,9 +13,22 @@ export default class HeadersV0 {
         ['clientId', NullableStringField],
         ['_taggedFields', TaggedFields]
     ]);
+    values = null;
 
-    constructor() {
+    constructor(values) {
         this.size = null;
+        // TODO update this class to be in line with the other Schema'd classes
+        // i.e. static deserialize that returns an instance, then get rid of this if
+        if (!!values) {
+            this.values = {};
+            for (const [attr, _] of this.schema.fields) {
+                this.values[attr] = values[attr];
+            };
+        }
+    }
+
+    serialize() {
+        return this.schema.serialize(this.values);
     }
 
     deserialize(buffer, offset) {

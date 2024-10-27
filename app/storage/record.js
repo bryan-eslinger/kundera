@@ -1,24 +1,20 @@
 import CompactBytes from "../protocol/types/compact_bytes.js";
-import CompactNullableString from "../protocol/types/compact_nullable_string.js";
+import CompactNullableBytes from "../protocol/types/compact_nullable_bytes.js";
 import Int8 from "../protocol/types/int8.js";
 import Struct from "../protocol/types/struct.js";
 import VarInt from "../protocol/types/var_int.js";
-import { metaDataRecordTypes } from "../metadata/index.js";
 
 export default class Record {
     static schema = new Struct([
         ['attributes', Int8],
         ['timestampDelta', VarInt],
         ['offsetDelta', VarInt],
-        ['key', CompactNullableString],
-        ['value', new Struct([
-            ['frameVersion', Int8],
-            ['recordType', Int8],
-            ['version', Int8],
-            ['recordValue', CompactBytes]
-        ])]
-    ]);
+        ['key', CompactNullableBytes],
+        ['value', CompactBytes],
+        // ['headers', new CompactArray(Header)] // TODO headers
+    ])
 
+    // TODO extract schema-able kind of decorator
     constructor(values) {
         // TODO handle undefineds
         for (const [attr, _] of this.constructor.schema.fields) {
@@ -26,22 +22,11 @@ export default class Record {
         }
     }
 
-    static deserialize(buffer) {
-        const values = this.schema.deserialize(buffer).value;
-        values.value.recordValue = metaDataRecordTypes[values.value.recordType]
-            .deserialize(values.value.recordValue)
-            .value;
-        return new Record(values)
+    static deserialize(buffer, offset = 0) {
+        return new Record(this.schema.deserialize(buffer, offset).value);
     }
 
     serialize() {
-        return this.constructor.schema.serialize({
-            ...this,
-            value: {
-                ...this.value,
-                recordValue: metaDataRecordTypes[this.value.recordType]
-                    .serialize(this.value.recordValue)
-            }
-        });
+        return this.constructor.schema.serialize(this);
     }
 }

@@ -5,25 +5,18 @@ import {
     readFileSync
 } from "node:fs";
 import { join } from "node:path";
-import RecordBatch from "./record_batch.js";
-import Record from "./record.js";
+
+import RecordBatch from "../protocol/fields/record_batch.js";
 
 // TODO look into zero-copy optimizations with Node and make sure the
 // fetch responses are being zero-copied
 
 export default class LogController {
-    #batches = {};
-    #broker;
     #config;
 
-    constructor(broker) {
-        this.#broker = broker;
-        this.#config = broker.config;
+    constructor(config) {
+        this.#config = config;
         this.#bootstrap();
-    }
-
-    get #metadata() {
-        return this.#broker.metadata;
     }
 
     #getLogDir(topicName, partition) {
@@ -35,68 +28,26 @@ export default class LogController {
         return join(this.#getLogDir(topicName, partition), '0000000000000000.log')
     }
 
-    flush(topicName, partition) {
-        const records = this.#batches[[topicName, partition]];
-
-        // TODO race conditions around writing additional records after a flush has been started
-        // TODO real values for most of this
-        const batch = new RecordBatch({
-            baseOffset: 0,
-            partitionLeaderEpoch: 0,
-            magicByte: 0,
-            attributes: 0,
-            baseTimestamp: 0,
-            maxTimestamp: 0,
-            producerId: 0,
-            producerEpoch: 0,
-            baseSequence: 0,
-            records
-        });
-        
-        // TODO this is absolutely not going to scale,
-        // need to use writeable streams in the end
-        // but for now just want to get the pieces
-        // working under low load and then transition
-        // to a worker queue structure that can better
-        // manage write streams
-        appendFileSync(this.#getLogFileName(topicName, partition), batch.serialize());
-        if (topicName === this.#config.metadataTopic) {
-            // maybe write metadata records via the metadata class
-            // and trigger the update there?
-            this.#metadata.update();
-        }
-    }
     // TODO: take advantage of readFile async version to be able to
     // parallelize calls to read
+    // TODO: read starting from an offset
     read(topicName, partition) {
         console.debug(`reading logs for ${topicName}`);
-
-        const data = LogReader.read(this.#getLogFileName(topicName, partition))
+        const data = LogReader.read(this.#getLogFileName(topicName, partition));
+        // TODO error handling
         return { err: null, data };
     }
 
     // TODO clarify record vs. metadata record
-    write(topicName, partition, recordType, recordValue) {
-        const batchKey = [topicName, partition];
-        if (!this.#batches[batchKey]) {
-            this.#batches[batchKey] = []
-        }
+    write(topicName, partition, batch) {
+        // TODO this is absolutely not going to scale,
+        // need to use writeable streams in the end
+        // but for now just want to get the pieces
+        // working under low load and then transition
+        // to promise- or callback-based IO
 
-        // TODO performance implications of gc'ing this object?
-        const record = new Record({
-            attributes: 0,
-            timestampDelta: 0,
-            offsetDelta: this.#batches[batchKey].length - 1,
-            key: null,
-            value: {
-                frameVersion: 0,
-                recordType,
-                version: 0,
-                recordValue
-            }
-        });
-
-        this.#batches[batchKey].push(record.serialize());
+        // TODO index
+        appendFileSync(this.#getLogFileName(topicName, partition), batch);
     }
 
     #ensureMetadata() {
@@ -109,7 +60,7 @@ export default class LogController {
     }
     
     #bootstrap() {
-        this.#ensureMetadata(this.config);
+        this.#ensureMetadata(this.#config);
     }
 }
 

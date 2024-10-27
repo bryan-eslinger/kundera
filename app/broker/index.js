@@ -13,7 +13,7 @@ class Kundera {
     constructor() {
         this.config = config();
         this.handlers = {}
-        this.logController = new LogController(this);
+        this.logController = new LogController(this.config);
         this.metadata = new Metadata(this.config.metadataTopic, this.logController);
         this.server = createServer(this.onConnection);
         this.server.handle = (apiKey, handler) => {

@@ -15,7 +15,7 @@ export default class VarInt {
             shift += 7;
 
             if ((byte & 0x80) === 0) {
-                console.log(`deserialized VarInt bytes ${offset} to ${offset + size - 1}`)
+                console.log(`deserialized VarInt bytes ${offset} to ${size - 1}`)
                 return { value: zigZag.decode(value), size: size - offset };
             }
         }

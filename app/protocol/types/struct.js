@@ -1,5 +1,6 @@
 export default class Struct {
     constructor(fields) {
+        console.log(fields);
         this.fields = new Map();
         for (const [attr, field] of fields) {
             this.fields.set(attr, field)

@@ -1,5 +1,7 @@
+import { metaDataRecordTypeKeys } from "../metadata/index.js";
+import RecordValue from "../metadata/record_value.js";
 import Record from "../storage/record.js";
-import RecordBatch from "../storage/record_batch.js";
+import RecordBatch from "../protocol/fields/record_batch.js";
 
 export default class Metadata {
     consumerTopics = null;
@@ -28,34 +30,55 @@ export default class Metadata {
     }
 
     readBatches() {
-        const batches = [];
+        // TODO error handling
         const { data } = this.logController.read(this.topicName, 0);
-
-        let offset = 0;
-        while (offset < data.length) {
-            // TODO handle malformed logs?
-            
-            // +8 to skip the baseOffset
-            // TODO is there a way to do this without the implicit 
-            // dependency on the recordbatch schema?
-            // probably want to just move this into the RecordBatch
-            // deserializer and have it return an array of RecordBatch
-            // instances, i.e. any record batches in the given data buffer
-            const batchLength = data.readInt32BE(offset + 8);
-            batches.push(RecordBatch.deserialize(
-                data.subarray(offset, offset + batchLength))
-            );
-            offset += batchLength;
+        const batches = []
+        let batchOffset = 0;
+        while (batchOffset < data.length) {
+            const { value, size } = RecordBatch.deserialize(data, batchOffset);
+            batches.push(value);
+            batchOffset += size;
         }
+        batches.forEach(batch => {
+            batch.records = batch.records.map(record => this.#readRecord(record));
+        })
         return batches;
     }
 
-    writeRecord(record) {}
+    #readRecord(data) {
+        const record = Record.deserialize(data);
+        record.value = RecordValue.deserialize(record.value);
+        return record
+    }
+
+    writeRecords(records) {
+        const batch = new RecordBatch({
+            magicByte: 0,
+            crc: 0,
+            attributes: 0,
+            baseTimestamp: 0,
+            maxTimestamp: 0,
+            producerId: -1,
+            producerEpoch: -1,
+            baseSequence: 0,
+            records: records.map(([recordType, recordValue]) => (
+                new RecordValue({
+                    frameVersion: 0,
+                    recordType,
+                    version: 0,
+                    recordValue
+                }).serialize()
+            ))
+        })
+
+        this.logController.write(this.topicName, 0, batch.serialize());
+        this.update();
+    }
 
     update() {
         // TODO error handling
         // TODO incremental updates
-        // TODO think better through first run scenario
+        // TODO think through first run scenario better
         // does __cluster_metadata get its own entry in
         // __cluster_metadata? right now we just start with
         // no metadata log
@@ -71,9 +94,7 @@ export default class Metadata {
         }
 
         this.records = batches.map(batch => (
-            batch.records.map(record => (
-                Record.deserialize(record)
-            ))
+            batch.records.map(record => record)
         )).flat();
     }
 }
