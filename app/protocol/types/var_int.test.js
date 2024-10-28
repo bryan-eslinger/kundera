@@ -21,8 +21,24 @@ describe('VarInt', () => {
     });
 
     describe('serialize', () => {
-        it('converts the integer to a zig-zagged var int byte array', () => {
-            expect(VarInt.serialize(128)).toEqual(Buffer.from([0x80, 0x02]))
+        it('converts the integer 75 to a zig-zagged var int byte array', () => {
+            expect(VarInt.serialize(75)).toEqual(Buffer.from([0x96, 0x01]));
         });
+
+        it('converts the integer 300 to a zig-zagged var int byte array', () => {
+            expect(VarInt.serialize(300)).toEqual(Buffer.from([0xd8, 0x04]));
+        });
+
+        it('converts the integer 128 to a zig-zagged var int byte array', () => {
+            expect(VarInt.serialize(128)).toEqual(Buffer.from([128, 2]))
+        })
+        
+        it('converts the integer 513 to a zig-zagged var int byte array', () => {
+            expect(VarInt.serialize(513)).toEqual(Buffer.from([130, 8]))
+        })
+
+        it('converts the integer 1025 to a zig-zagged var int byte array', () => {
+            expect(VarInt.serialize(1025)).toEqual(Buffer.from([130, 16]))
+        })
     });
 });

@@ -24,11 +24,11 @@ export default class VarInt {
     static serialize(value) {
         let zigZagged = zigZag.encode(value);
         const result = [];
-        while (zigZagged > 0x7f) {
-            result.push((value & 0x7f) | 0x80);
+        while (zigZagged > 127) {
+            result.push((zigZagged & 0x7f) | 0x80);
             zigZagged >>>= 7;
         }
-        result.push(zigZagged);
+        result.push(zigZagged | 0);
         return Buffer.from(result);
     }
 }

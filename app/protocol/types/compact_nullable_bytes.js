@@ -1,5 +1,4 @@
 import VarInt from "./var_int.js";
-import { NULL_STRING_BYTE } from "./index.js";
 
 export default class CompactNullableBytes {
     // TODO implement the deserialize
