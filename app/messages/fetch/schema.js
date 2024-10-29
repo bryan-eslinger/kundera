@@ -8,7 +8,7 @@ import UuidField from "../../protocol/types/uuid.js";
 import CompactRecordsField from "../../protocol/types/compact_records.js";
 
 export default class FetchResponse {
-    schema = new StructField([
+    static schema = new StructField([
         ['throttleTimeMs', Int32Field],
         ['errorCode', Int16Field],
         ['sessionId', Int32Field],
@@ -40,7 +40,11 @@ export default class FetchResponse {
     }
 
     serialize() {
-        const serialized = this.schema.serialize(this.values);
+        const serialized = FetchResponse.schema.serialize(this.values);
         return serialized;
+    }
+
+    static deserialize(buffer, offset) {
+        return this.schema.deserialize(buffer, offset);
     }
 }

@@ -35,6 +35,10 @@ import CompactStringField from "../../protocol/types/compact_string.js";
         ['_taggedFields', TaggedFields]
     ]);
 
+    serialize(values) {
+        return this.schema.serialize(values);
+    }
+
     deserialize(buffer, offset) {
         return this.schema.deserialize(buffer, offset).value;
     }
