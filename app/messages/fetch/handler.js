@@ -14,23 +14,26 @@ const fetchHandler = (req, res) => {
             const topicName = broker.metadata.getTopicName(topic.topicId);
             if (!topicName) {
                 return {
-                    partitionIndex: partition,
-                    // TODO error mapping / handling from the logcontroller
-                    errorCode: errorCodes.UNKNOWN_TOPIC,
-                    highWatermark: 0,
-                    lastStableOffset: 0,
-                    logStartOffset: 0,
-                    abortedTransactions: [],
-                    preferredReadReplica: 0,
-                    records: []
+                    topicId: topic.topicId,
+                    partitions: topic.partitions.map(partition => ({
+                        partitionIndex: partition,
+                        // TODO error mapping / handling from the logcontroller
+                        errorCode: errorCodes.UNKNOWN_TOPIC_OR_PARTITION, // TODO this vs UNKNOWN_TOPIC?
+                        highWatermark: 0,
+                        lastStableOffset: 0,
+                        logStartOffset: 0,
+                        abortedTransactions: [],
+                        preferredReadReplica: 0,
+                        records: null
+                    }))
                 }
             }
             return {
                 topicId: topic.topicId,
                 partitions: topic.partitions.map(partition => {
-                    const logs = broker.logController.read(topic.topicId, partition);
+                    const logs = broker.logController.read(broker.metadata.topicIdMap[topic.topicId], partition.partition);
                     return {
-                        partitionIndex: partition,
+                        partitionIndex: partition.partition,
                         // TODO error mapping / handling from the logcontroller
                         errorCode: !!logs.err ? errorCodes.UNKNOWN_SERVER_ERROR : errorCodes.NO_ERROR,
                         // TODO read from logs

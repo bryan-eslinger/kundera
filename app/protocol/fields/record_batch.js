@@ -46,7 +46,7 @@ export default class RecordBatch {
         }
     }
 
-    static deserialize(buffer, offset) {
+    static deserialize(buffer, offset = 0) {
         // TODO handle malformed logs?
         const batchLength = buffer.readInt32BE(offset + OFFSET_SIZE);
         return {
