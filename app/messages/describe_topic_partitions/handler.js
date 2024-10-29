@@ -10,6 +10,7 @@ const describeTopicPartitions = (req, res) => {
     const topicRecords = {};
     const partitionRecords = {};
 
+    // TODO move this into the metadata data structure somewhere?
     for (let record of broker.metadata.records) {
         switch(record.recordType) {
             case metaDataRecordTypeKeys.TOPIC_RECORD:

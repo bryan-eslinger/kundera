@@ -17,7 +17,7 @@ const produceHandler = (req, res) => {
             // TODO error handling
             // TODO really need to get the `write` call to be asynchronous
             if (broker.metadata.topicExists(topic.name)) {
-                const batch = new RecordBatch(partition.records).serialize()
+                const batch = new RecordBatch(partition.records);
                 // TODO check partition exists
                 broker.logController.write(topic.name, partition.index, batch);
                 partitionResponses.push({

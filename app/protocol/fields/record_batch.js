@@ -57,7 +57,7 @@ export default class RecordBatch {
         }        
     }
 
-    serialize() {
+    serialize(baseOffset) {
         const body = this.#body 
             ? this.#body 
             : RecordBatchBody.serialize({
@@ -66,7 +66,7 @@ export default class RecordBatch {
             });
         const header = RecordBatchHeader.serialize({
             batchLength: body.length,
-            baseOffset: 0 // TODO offset management
+            baseOffset
         });
         return Buffer.concat([header, body]);
     }

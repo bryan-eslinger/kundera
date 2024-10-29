@@ -1,20 +1,22 @@
 import { createServer } from "net";
 
-import { headerVersions } from "../protocol/fields/response/index.js";
-import Response from "../protocol/response.js";
-import Request from "../protocol/request.js";
-import { errorCodes } from "../error.js";
-import ErrorResponse from "../messages/error/schema.js";
-import config from "../config/index.js";
-import LogController from "../storage/log_controller.js";
-import Metadata from "./metadata.js";
+import { headerVersions } from "./protocol/fields/response/index.js";
+import Response from "./protocol/response.js";
+import Request from "./protocol/request.js";
+import { errorCodes } from "./error.js";
+import ErrorResponse from "./messages/error/schema.js";
+import config from "./config/index.js";
+import LogController from "./storage/log_controller.js";
+import Metadata from "./metadata/index.js";
+import MetadataController from "./metadata/controller.js";
 
 class Kundera {
     constructor() {
         this.config = config();
         this.handlers = {}
-        this.logController = new LogController(this.config);
-        this.metadata = new Metadata(this.config.metadataTopic, this.logController);
+        this.metadata = new Metadata();
+        this.logController = new LogController(this.config, this.metadata);
+        this.metadataController = new MetadataController(this.config.metadataTopic, this.metadata, this.logController);
         this.server = createServer(this.onConnection);
         this.server.handle = (apiKey, handler) => {
             this.handlers[apiKey] = handler;

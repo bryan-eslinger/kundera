@@ -1,25 +1,38 @@
-import { metaDataRecordTypeKeys } from "../metadata/index.js";
 import RecordValue from "../metadata/record_value.js";
 import Record from "../storage/record.js";
-import RecordBatch from "../protocol/fields/record_batch.js";
+import RecordBatch, { RecordBatchHeader } from "../protocol/fields/record_batch.js";
 
-export default class Metadata {
-    knownTopics = new Set();
+export default class Controller {
     logController;
-    records = [];
-    topicIdMap = {}
+    metadata;
     topicName;
 
-    constructor(topicName, logController) {
+    constructor(topicName, metadata, logController) {
         this.logController = logController
+        this.metadata = metadata
         this.topicName = topicName;
-        this.update();
+        this.#bootstrap();
     }
 
-    // TODO better caching
-    getTopicName(topicId) {
-        console.debug(`resolving topic name for ${topicId}`);
-        return this.topicIdMap[topicId]
+    #bootstrap() {
+        this.update();
+        this.#hydrateTopicOffsets();
+    }
+
+    #hydrateTopicOffsets() {
+        const topicOffsets = {};
+        this.metadata.knownTopics.forEach(topic => {
+            const { data } = this.logController.read(topic, 0);
+            let batchOffset = 0;
+            let lastOffset = -1;
+            while (batchOffset < data.length) {
+                const { value: batch, size } = RecordBatchHeader.deserialize(data, batchOffset);
+                lastOffset = batch.baseOffset;
+                batchOffset += size + batch.batchLength
+            }
+            topicOffsets[topic] = lastOffset;
+        });
+        this.metadata.topicOffsets = topicOffsets;
     }
 
     readBatches() {
@@ -42,10 +55,6 @@ export default class Metadata {
         const record = Record.deserialize(data);
         record.value = RecordValue.deserialize(record.value);
         return record
-    }
-
-    topicExists(topicName) {
-        return this.knownTopics.has(topicName);
     }
 
     writeRecords(records) {
@@ -74,7 +83,7 @@ export default class Metadata {
             ))
         })
 
-        this.logController.write(this.topicName, 0, batch.serialize());
+        this.logController.write(this.topicName, 0, batch);
         this.update();
     }
 
@@ -96,17 +105,8 @@ export default class Metadata {
             batches = [];
         }
 
-        this.records = batches.map(batch => (
+        this.metadata.records = batches.map(batch => (
             batch.records.map(record => record)
         )).flat();
-
-        
-        this.records
-            .filter(record => record.value.recordType === metaDataRecordTypeKeys.TOPIC)
-            .forEach(topicRecord => {
-                const topicName = topicRecord.value.recordValue.name;
-                this.knownTopics.add(topicName);
-                this.topicIdMap[topicRecord.value.recordValue.topicId] = topicName
-            })
     }
 }

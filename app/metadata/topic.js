@@ -36,7 +36,7 @@ export function createTopics(names) {
         topics.push({ name, topicId });
     });
 
-    broker.metadata.writeRecords(records);
+    broker.metadataController.writeRecords(records);
     // TODO partitions
     names.forEach(name => broker.logController.createLogDir(name, 0));
     return topics;

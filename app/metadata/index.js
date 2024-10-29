@@ -35,3 +35,46 @@ export const metaDataRecordTypes = {
     [metaDataRecordTypeKeys.PARTITION]: PartitionRecord,
     [metaDataRecordTypeKeys.TOPIC]: TopicRecord,
 }
+
+export default class Metadata {
+    // TODO think through the data structures here more carefully
+    knownTopics = new Set();
+    topicIdMap = {};
+    #records = [];
+    #topicOffsets = {};
+
+    get records() {
+        return this.#records;
+    }
+
+    set records(records) {
+        this.#records = records;
+        records
+            .filter(record => record.value.recordType === metaDataRecordTypeKeys.TOPIC)
+            .forEach(topicRecord => {
+                const topicName = topicRecord.value.recordValue.name;
+                this.knownTopics.add(topicName);
+                this.topicIdMap[topicRecord.value.recordValue.topicId] = topicName
+            })
+    }
+
+    set topicOffsets(topicOffsets) {
+        this.#topicOffsets = topicOffsets
+    }
+
+    getTopicName(topicId) {
+        return this.topicIdMap[topicId]
+    }
+
+    incrementOffset(topic) {
+        this.#topicOffsets[topic]++;
+    }
+
+    nextOffset(topic) {
+        return this.#topicOffsets[topic] + 1n;
+    }
+
+    topicExists(topicName) {
+        return this.knownTopics.has(topicName);
+    }
+}

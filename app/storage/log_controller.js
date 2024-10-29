@@ -1,3 +1,4 @@
+import { Mutex } from "async-mutex";
 import {
     appendFileSync,
     existsSync,
@@ -11,10 +12,12 @@ import { join } from "node:path";
 
 export default class LogController {
     #config;
+    #locks = {};
 
-    constructor(config) {
+    constructor(config, metadata) {
         this.#config = config;
         this.#bootstrap();
+        this.metadata = metadata;
     }
 
     #getLogDir(topicName, partition) {
@@ -26,8 +29,13 @@ export default class LogController {
         return join(this.#getLogDir(topicName, partition), '0000000000000000.log')
     }
 
+    // TODO sanitize topicName
     createLogDir(topicName, partition) {
-        mkdirSync(this.#getLogDir(topicName, partition), { recursive: true });
+        const logDir = this.#getLogDir(topicName, partition);
+        mkdirSync(logDir, { recursive: true });
+        // TODO segmenting / source of truth for file name
+        closeSync(openSync(join(logDir, '0000000000000000.log'), 'w'));
+
     }
 
     // TODO: take advantage of readFile async version to be able to
@@ -35,13 +43,13 @@ export default class LogController {
     // TODO: read starting from an offset
     read(topicName, partition) {
         console.debug(`reading logs for ${topicName}`);
-        const data = LogReader.read(this.#getLogFileName(topicName, partition));
+        const data = readFileSync(this.#getLogFileName(topicName, partition));
         // TODO error handling
         return { err: null, data };
     }
 
     // TODO clarify record vs. metadata record
-    write(topicName, partition, batch) {
+    async write(topicName, partition, batch) {
         // TODO this is absolutely not going to scale,
         // need to use writeable streams in the end
         // but for now just want to get the pieces
@@ -49,7 +57,18 @@ export default class LogController {
         // to promise- or callback-based IO
 
         // TODO index
-        appendFileSync(this.#getLogFileName(topicName, partition), batch);
+
+        // TODO custom mutex implementation that can take a key (i.e. the func params)
+        const lockKey = [topicName, partition]
+        if (!this.#locks[lockKey]) {
+            this.#locks[lockKey] = new Mutex();
+        }
+
+        await this.#locks[lockKey].runExclusive(() => {
+            const offset = this.metadata.nextOffset(topicName);
+            appendFileSync(this.#getLogFileName(topicName, partition), batch.serialize(offset));
+            this.metadata.incrementOffset(topicName);
+        });
     }
 
     #ensureMetadata() {
@@ -63,14 +82,5 @@ export default class LogController {
     
     #bootstrap() {
         this.#ensureMetadata(this.#config);
-    }
-}
-
-class LogReader {
-    // TODO read at a given log offset
-    static read(logFile, _offset) {
-        console.debug(`reading ${logFile}`);
-        // TODO error handling
-        return readFileSync(logFile);
     }
 }
