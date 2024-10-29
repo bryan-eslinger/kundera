@@ -4,6 +4,7 @@ const  apiKeys = {
     DESCRIBE_TOPIC_PARTITIONS: 75,
     FETCH: 1,
     HEARTBEAT: 12,
+    PRODUCE: 0,
 }
 
 export default apiKeys;

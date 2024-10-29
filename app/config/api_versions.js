@@ -16,6 +16,11 @@ const apiVersions = [{
     apiKey: apiKeys.DESCRIBE_TOPIC_PARTITIONS,
     minVersion: 0,
     maxVersion: 0,
+},
+{
+    apiKey: apiKeys.PRODUCE,
+    minVersion: 11,
+    maxVersion: 11,
 }]
 
 export const getApiVersionByKey = (key) => (
