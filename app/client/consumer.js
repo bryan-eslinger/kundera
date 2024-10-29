@@ -7,7 +7,11 @@ import MessageLengthField from '../protocol/fields/message_length.js';
 import RecordBatch from '../protocol/fields/record_batch.js';
 
 // TODO pluggable serializers
-export default function consume(topicId) {
+// TODO method signature that allows for multiple topics
+// TODO (big todo in the client) -> introduce consumer group concept
+// and allow individual client to consume a topic then be given
+// partition assignments
+export default function consume(topicId, fetchOffset = 0n) {
     const request = new FetchRequest().serialize({
         maxWaitMs: 0,
         minBytes: 0,
@@ -19,7 +23,7 @@ export default function consume(topicId) {
             partitions: [{
                 partition: 0,
                 currentLeaderEpoch: 0,
-                fetchOffset: 0,
+                fetchOffset,
                 lastFetchedEpoch: 0,
                 logStartOffset: 0,
                 partitionMaxBytes: 0
@@ -37,6 +41,7 @@ export default function consume(topicId) {
                 const { size: lengthSize } = MessageLengthField.deserialize(data);
                 const { size: headersSize } = HeadersV1.deserialize(data, lengthSize);
                 const { value: resBody } = FetchResponse.deserialize(data, lengthSize + headersSize);
+                console.log(resBody.responses[0].partitions[0].records.length)
                 resBody.responses.forEach(response => {
                     response.partitions.forEach(partition => {
                         let offset = 0;

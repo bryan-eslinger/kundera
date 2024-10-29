@@ -7,6 +7,8 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 
+import { RecordBatchHeader } from "../protocol/fields/record_batch.js";
+
 // TODO look into zero-copy optimizations with Node and make sure the
 // fetch responses are being zero-copied
 
@@ -35,17 +37,41 @@ export default class LogController {
         mkdirSync(logDir, { recursive: true });
         // TODO segmenting / source of truth for file name
         closeSync(openSync(join(logDir, '0000000000000000.log'), 'w'));
-
     }
 
     // TODO: take advantage of readFile async version to be able to
     // parallelize calls to read
     // TODO: read starting from an offset
-    read(topicName, partition) {
+    #read(topicName, partition) {
         console.debug(`reading logs for ${topicName}`);
         const data = readFileSync(this.#getLogFileName(topicName, partition));
         // TODO error handling
         return { err: null, data };
+    }
+
+    readBatches(topicName, partition, fromOffset = 0n) {
+        const { data, err } = this.#read(topicName, partition);
+
+        if (err) {
+            return { err, batches: [] }
+        }
+        
+        const batches = [];
+        let batchOffset = 0;
+        let baseOffset = -1n;
+        while (batchOffset < data.length) {
+            const { value: batch, size } = RecordBatchHeader.deserialize(data, batchOffset);
+            if (batchOffset === 0) {
+                baseOffset = batch.baseOffset;
+            }
+            batches.push(data.subarray(batchOffset, batchOffset + size + batch.batchLength))
+            batchOffset += size + batch.batchLength
+        }
+
+        return {
+            batches: batches.slice(Number(fromOffset - baseOffset)),
+            baseOffset: baseOffset + fromOffset
+        };
     }
 
     // TODO clarify record vs. metadata record

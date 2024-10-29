@@ -1,6 +1,6 @@
 import RecordValue from "../metadata/record_value.js";
 import Record from "../storage/record.js";
-import RecordBatch, { RecordBatchHeader } from "../protocol/fields/record_batch.js";
+import RecordBatch from "../protocol/fields/record_batch.js";
 
 export default class Controller {
     logController;
@@ -22,33 +22,21 @@ export default class Controller {
     #hydrateTopicOffsets() {
         const topicOffsets = {};
         this.metadata.knownTopics.forEach(topic => {
-            const { data } = this.logController.read(topic, 0);
-            let batchOffset = 0;
-            let lastOffset = -1;
-            while (batchOffset < data.length) {
-                const { value: batch, size } = RecordBatchHeader.deserialize(data, batchOffset);
-                lastOffset = batch.baseOffset;
-                batchOffset += size + batch.batchLength
-            }
-            topicOffsets[topic] = lastOffset;
+            const { batches, baseOffset } = this.logController.readBatches(topic, 0);
+            topicOffsets[topic] = baseOffset + BigInt(batches.length - 1);
         });
         this.metadata.topicOffsets = topicOffsets;
     }
 
     readBatches() {
         // TODO error handling
-        const { data } = this.logController.read(this.topicName, 0);
-        const batches = []
-        let batchOffset = 0;
-        while (batchOffset < data.length) {
-            const { value, size } = RecordBatch.deserialize(data, batchOffset);
-            batches.push(value);
-            batchOffset += size;
-        }
-        batches.forEach(batch => {
-            batch.records = batch.records.map(record => this.#readRecord(record));
+        const { batches } = this.logController.readBatches(this.topicName, 0);
+        
+        return batches.map(batch => {
+            const { value } = RecordBatch.deserialize(batch);
+            value.records = value.records.map(record => this.#readRecord(record));
+            return value;
         })
-        return batches;
     }
 
     #readRecord(data) {

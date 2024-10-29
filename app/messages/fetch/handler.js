@@ -31,11 +31,15 @@ const fetchHandler = (req, res) => {
             return {
                 topicId: topic.topicId,
                 partitions: topic.partitions.map(partition => {
-                    const logs = broker.logController.read(broker.metadata.topicIdMap[topic.topicId], partition.partition);
+                    const { batches, err } = broker.logController.readBatches(
+                        broker.metadata.topicIdMap[topic.topicId], 
+                        partition.partition,
+                        partition.fetchOffset
+                    );
                     return {
                         partitionIndex: partition.partition,
                         // TODO error mapping / handling from the logcontroller
-                        errorCode: !!logs.err ? errorCodes.UNKNOWN_SERVER_ERROR : errorCodes.NO_ERROR,
+                        errorCode: !!err ? errorCodes.UNKNOWN_SERVER_ERROR : errorCodes.NO_ERROR,
                         // TODO read from logs
                         highWatermark: 0,
                         // TODO read from logs
@@ -46,7 +50,12 @@ const fetchHandler = (req, res) => {
                         abortedTransactions: [],
                         // TODO read from logs
                         preferredReadReplica: 0,
-                        records: logs.data
+                        // TODO this concat is necessary because readBatches services both cases where
+                        //the caller wants to consume the batches in some way in the broker and 
+                        // (i.e. here) where we just want to pass the bytes along. needs to be separate
+                        //handling somehow in the logcontroller (e.g. param to readbatches or different
+                        // methods) so we can avoid the buffer concat here
+                        records: Buffer.concat(batches)
                     }
                 })
             }
