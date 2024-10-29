@@ -34,9 +34,15 @@ const schema = new Struct([
 ]);
 
 export default class RecordBatch {
+    #body = null;
+
     constructor(values) {
-        for (const [attr, _] of schema.fields) {
-            this[attr] = values[attr];
+        if (values instanceof Buffer) {
+            this.#body = values;
+        } else {
+            for (const [attr, _] of schema.fields) {
+                this[attr] = values[attr];
+            }
         }
     }
 
@@ -52,7 +58,12 @@ export default class RecordBatch {
     }
 
     serialize() {
-        const body = RecordBatchBody.serialize({ ...this, lastOffsetDelta: this.records.length });
+        const body = this.#body 
+            ? this.#body 
+            : RecordBatchBody.serialize({
+                ...this,
+                lastOffsetDelta: this.records.length
+            });
         const header = RecordBatchHeader.serialize({
             batchLength: body.length,
             baseOffset: 0 // TODO offset management

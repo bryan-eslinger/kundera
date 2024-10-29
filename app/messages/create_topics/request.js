@@ -30,7 +30,19 @@ export default class CreateTopicsRequest {
         ['_taggedFields', TaggedFields]
     ]);
 
+    constructor(values) {
+        if (!!values) {
+            for (const [attr, _] of this.schema.fields) {
+                this[attr] = values[attr];
+            }
+        }
+    }
+
     deserialize(buffer, offset) {
         return this.schema.deserialize(buffer, offset).value;
+    }
+
+    serialize() {
+        return this.schema.serialize(this);
     }
 }

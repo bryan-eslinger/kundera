@@ -10,7 +10,7 @@ import TaggedFields from "../../protocol/fields/tagged_fields.js";
 import Uuid from "../../protocol/types/uuid.js";
 
 export default class CreateTopicsResponse {
-    schema = new Struct([
+    static schema = new Struct([
         ['throttleTimeMs', Int32],
         ['topics', new CompactArray(new Struct([
             ['name', CompactString],
@@ -37,7 +37,11 @@ export default class CreateTopicsResponse {
     }
 
     serialize() {
-        const serialized = this.schema.serialize(this.values);
+        const serialized = CreateTopicsResponse.schema.serialize(this.values);
         return serialized;
+    }
+
+    static deserialize(buffer, offset = 0) {
+        return this.schema.deserialize(buffer, offset)
     }
 }

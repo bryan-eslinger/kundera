@@ -3,7 +3,7 @@ import StructField from "../../types/struct.js";
 import TaggedFields from "../tagged_fields.js";
 
 export default class HeadersV1 {
-    schema = new StructField([
+    static schema = new StructField([
         ['correlationId', Int32Field],
         ['_taggedFields', TaggedFields],
     ]);
@@ -15,6 +15,10 @@ export default class HeadersV1 {
     serialize() {
         console.debug('Response headers');
         console.debug(this.values);
-        return this.schema.serialize(this.values);
+        return HeadersV1.schema.serialize(this.values);
+    }
+
+    static deserialize(buffer, offset) {
+        return this.schema.deserialize(buffer, offset)
     }
 }

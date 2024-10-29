@@ -6,8 +6,6 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 
-import RecordBatch from "../protocol/fields/record_batch.js";
-
 // TODO look into zero-copy optimizations with Node and make sure the
 // fetch responses are being zero-copied
 
@@ -26,6 +24,10 @@ export default class LogController {
     #getLogFileName(topicName, partition) {
         // TODO write to latest log file; this assumes only one per partition with no rolling
         return join(this.#getLogDir(topicName, partition), '0000000000000000.log')
+    }
+
+    createLogDir(topicName, partition) {
+        mkdirSync(this.#getLogDir(topicName, partition), { recursive: true });
     }
 
     // TODO: take advantage of readFile async version to be able to

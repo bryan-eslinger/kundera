@@ -4,9 +4,10 @@ import Record from "../storage/record.js";
 import RecordBatch from "../protocol/fields/record_batch.js";
 
 export default class Metadata {
-    consumerTopics = null;
+    knownTopics = new Set();
     logController;
     records = [];
+    topicIdMap = {}
     topicName;
 
     constructor(topicName, logController) {
@@ -18,15 +19,7 @@ export default class Metadata {
     // TODO better caching
     getTopicName(topicId) {
         console.debug(`resolving topic name for ${topicId}`);
-        if (this.consumerTopics === null) {
-            this.consumerTopics = Object.fromEntries(
-                this.records
-                    .filter(record => record.recordType === metaDataRecordTypeKeys.TOPIC_RECORD)
-                    .map(topicRecord => [topicRecord.recordValue.topicId, topicRecord.recordValue.name])
-            );
-        }
-    
-        return this.consumerTopics[topicId]
+        return this.topicIdMap[topicId]
     }
 
     readBatches() {
@@ -51,6 +44,10 @@ export default class Metadata {
         return record
     }
 
+    topicExists(topicName) {
+        return this.knownTopics.has(topicName);
+    }
+
     writeRecords(records) {
         const batch = new RecordBatch({
             magicByte: 0,
@@ -62,11 +59,17 @@ export default class Metadata {
             producerEpoch: -1,
             baseSequence: 0,
             records: records.map(([recordType, recordValue]) => (
-                new RecordValue({
-                    frameVersion: 0,
-                    recordType,
-                    version: 0,
-                    recordValue
+                new Record({
+                    attributes: 0,
+                    timestampDelta: 0,
+                    offsetDelta: 0,
+                    key: null,
+                    value: new RecordValue({
+                        frameVersion: 0,
+                        recordType,
+                        version: 0,
+                        recordValue
+                    }).serialize()
                 }).serialize()
             ))
         })
@@ -96,5 +99,14 @@ export default class Metadata {
         this.records = batches.map(batch => (
             batch.records.map(record => record)
         )).flat();
+
+        
+        this.records
+            .filter(record => record.value.recordType === metaDataRecordTypeKeys.TOPIC)
+            .forEach(topicRecord => {
+                const topicName = topicRecord.value.recordValue.name;
+                this.knownTopics.add(topicName);
+                this.topicIdMap[topicRecord.value.recordValue.topicId] = topicName
+            })
     }
 }
