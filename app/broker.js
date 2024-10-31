@@ -54,8 +54,6 @@ class Kundera {
     
             // TODO tighten up handler context maybe?
             handler(request, response);
-    
-            // TODO error handling when a handler does not invoke socket.end?
         });
     }
 }

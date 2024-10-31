@@ -3,7 +3,6 @@ import Struct from "../protocol/types/struct.js";
 import { metaDataRecordTypes } from "../metadata/index.js";
 import RawBytes from "../protocol/types/raw_bytes.js";
 
-// TODO simply the schema using storage/record as base
 export default class RecordValue {
     static schema = new Struct([
         ['frameVersion', Int8],

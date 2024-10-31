@@ -3,8 +3,8 @@ import { v4 as uuidv4 } from "uuid";
 import broker from "../index.js";
 import { metaDataRecordTypeKeys } from "./index.js";
 
-// TODO make async to allow parallelization via promises
-export function createTopics(names) {
+// TODO parallelize in the handler per topid
+export async function createTopics(names) {
     const PARTITIONS = [0];
     const topics = [];
     // TODO error handling
@@ -36,7 +36,7 @@ export function createTopics(names) {
         topics.push({ name, topicId });
     });
 
-    broker.metadataController.writeRecords(records);
+    await broker.metadataController.writeRecords(records);
     // TODO partitions
     names.forEach(name => broker.logController.createLogDir(name, 0));
     return topics;

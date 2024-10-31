@@ -14,23 +14,25 @@ export default class Controller {
         this.#bootstrap();
     }
 
-    #bootstrap() {
-        this.update();
+    async #bootstrap() {
+        await this.update();
         this.#hydrateTopicOffsets();
     }
 
-    #hydrateTopicOffsets() {
+    async #hydrateTopicOffsets() {
         const topicOffsets = {};
-        this.metadata.knownTopics.forEach(topic => {
-            const { batches, baseOffset } = this.logController.readBatches(topic, 0);
+        await this.metadata.knownTopics.forEach(async (topic) => {
+            const { batches, baseOffset } = await this.logController.readBatches(topic, 0);
             topicOffsets[topic] = baseOffset + BigInt(batches.length - 1);
         });
+        const { batches, baseOffset } = await this.logController.readBatches(this.topicName, 0);
+        topicOffsets[this.topicName] = baseOffset + BigInt(batches.length - 1);
         this.metadata.topicOffsets = topicOffsets;
     }
 
-    readBatches() {
+    async readBatches() {
         // TODO error handling
-        const { batches } = this.logController.readBatches(this.topicName, 0);
+        const { batches } = await this.logController.readBatches(this.topicName, 0);
         
         return batches.map(batch => {
             const { value } = RecordBatch.deserialize(batch);
@@ -45,7 +47,7 @@ export default class Controller {
         return record
     }
 
-    writeRecords(records) {
+    async writeRecords(records) {
         const batch = new RecordBatch({
             magicByte: 0,
             crc: 0,
@@ -71,11 +73,11 @@ export default class Controller {
             ))
         })
 
-        this.logController.write(this.topicName, 0, batch);
+        await this.logController.write(this.topicName, 0, batch);
         this.update();
     }
 
-    update() {
+    async update() {
         // TODO error handling
         // TODO incremental updates
         // TODO think through first run scenario better
@@ -84,7 +86,7 @@ export default class Controller {
         // no metadata log
         let batches;
         try {
-            batches = this.readBatches();
+            batches = await this.readBatches();
         } catch (e) {
             // TODO tighter error handling
             if (e.code !== 'ENOENT') {

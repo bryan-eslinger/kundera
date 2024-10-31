@@ -4,50 +4,44 @@ import ProduceResponse from "./schema.js";
 import broker from "../../index.js";
 import RecordBatch from "../../protocol/fields/record_batch.js";
 
-const produceHandler = (req, res) => {
+const produceHandler = async (req, res) => {
     res.headers(headerVersions.V1);
 
     // TODO transaction handling
     // TODO acks handling
     // TODO timeout handling
 
-    const partitionResponses = [];
-    req.body.topicData.forEach(topic => {
-        topic.partitionData.forEach(partition => {
+    const responses = await Promise.all(req.body.topicData.map(async (topic) => ({
+        name: topic.name,
+        partitionResponses: await Promise.all(topic.partitionData.map(async (partition) => {
             // TODO error handling
-            // TODO really need to get the `write` call to be asynchronous
             if (broker.metadata.topicExists(topic.name)) {
                 const batch = new RecordBatch(partition.records);
                 // TODO check partition exists
-                broker.logController.write(topic.name, partition.index, batch);
-                partitionResponses.push({
+                await broker.logController.write(topic.name, partition.index, batch);
+                return {
                     index: partition.index,
                     errorCode: errorCodes.NO_ERROR,
                     baseOffset: 0,
                     logAppendTimeMs: 0,
                     logStartOffset: 0, // TODO implement
                     recordErrors: []
-                });
+                };
             } else {
-                partitionResponses.push({
+                return {
                     index: partition.index,
                     errorCode: errorCodes.UNKNOWN_TOPIC_OR_PARTITION,
                     baseOffset: 0,
                     logAppendTimeMs: 0,
                     logStartOffset: 0,
                     recordErrors: []
-                });
+                };
             }
-        });
-    });
+        }))
+    })));
 
-    // TODO probably want to build up the iterated response elements above
-    // and avoid the double looping here
     res.send(new ProduceResponse({
-        responses: req.body.topicData.map(topic => ({
-            name: topic.name,
-            partitionResponses,
-        })),
+        responses,
         throttleTimeMs: 0 // TODO implement (broker-wide)
     }));
 }

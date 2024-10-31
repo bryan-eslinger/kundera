@@ -4,10 +4,10 @@ import { headerVersions } from "../../protocol/fields/response/index.js";
 import CreateTopicsResponse from "./schema.js";
 
 // TODO error handling
-const createTopicsHandler = (req, res) => {
+const createTopicsHandler = async (req, res) => {
     res.headers(headerVersions.V1);
 
-    const topics = createTopics(req.body.topics.map(topic => topic.name));
+    const topics = await createTopics(req.body.topics.map(topic => topic.name));
         
     res.send(new CreateTopicsResponse({
         throttleTimeMs: 0,

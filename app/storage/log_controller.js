@@ -1,10 +1,12 @@
 import { Mutex } from "async-mutex";
 import {
-    appendFileSync,
+    createReadStream,
+    closeSync,
     existsSync,
+    openSync,
     mkdirSync,
-    readFileSync
 } from "node:fs";
+import { appendFile, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 
 import { RecordBatchHeader } from "../protocol/fields/record_batch.js";
@@ -15,6 +17,7 @@ import { RecordBatchHeader } from "../protocol/fields/record_batch.js";
 export default class LogController {
     #config;
     #locks = {};
+    #segment = '0000000000000000' // TODO move this into partition metadata
 
     constructor(config, metadata) {
         this.#config = config;
@@ -28,46 +31,91 @@ export default class LogController {
 
     #getLogFileName(topicName, partition) {
         // TODO write to latest log file; this assumes only one per partition with no rolling
-        return join(this.#getLogDir(topicName, partition), '0000000000000000.log')
+        return join(this.#getLogDir(topicName, partition), `${this.#segment}.log`);
+    }
+
+    #getLogIndexName(topicName, partition) {
+        return join(this.#getLogDir(topicName, partition), `${this.#segment}.index`);
     }
 
     // TODO sanitize topicName
     createLogDir(topicName, partition) {
         const logDir = this.#getLogDir(topicName, partition);
         mkdirSync(logDir, { recursive: true });
-        // TODO segmenting / source of truth for file name
-        closeSync(openSync(join(logDir, '0000000000000000.log'), 'w'));
+        closeSync(openSync(join(logDir, `${this.#segment}.log`), 'w'));
+        closeSync(openSync(join(logDir, `${this.#segment}.index`), 'w'));
     }
 
-    // TODO: take advantage of readFile async version to be able to
-    // parallelize calls to read
-    // TODO: read starting from an offset
-    #read(topicName, partition) {
+    #read(topicName, partition, start = 0) {
         console.debug(`reading logs for ${topicName}`);
-        const data = readFileSync(this.#getLogFileName(topicName, partition));
-        // TODO error handling
-        return { err: null, data };
+        // TODO error handling/mapping
+        return new Promise((resolve, reject) => {
+            const chunks = [];
+
+            // TODO configure chunk size?
+            const stream = createReadStream(
+                this.#getLogFileName(topicName, partition),
+                { start }
+            );
+
+            stream.on('data', (chunk) => {
+                chunks.push(chunk);
+            });
+              
+            stream.on('end', () => {
+                resolve(Buffer.concat(chunks));
+            });
+            
+            stream.on('error', (err) => {
+                reject(err);
+            });
+        })
+        
     }
 
-    readBatches(topicName, partition, fromOffset = 0n) {
-        const { data, err } = this.#read(topicName, partition);
-
-        if (err) {
-            return { err, batches: [] }
+    async #getBatchStart(topicName, partition, fromOffset) {
+        // TODO error handling/mapping
+        const index = await readFile(this.#getLogIndexName(topicName, partition))
+        let indexOffset = 0;
+        let batchStart = null;
+        while (indexOffset < index.length) {
+            const offset = index.readBigInt64BE(indexOffset);
+            if (offset === fromOffset) {
+                batchStart = index.readInt32BE(indexOffset + 8);
+                break;
+            }
+            // TODO implicit knowledge of index structure
+            indexOffset += 12;
         }
-        
+        return batchStart;
+    }
+
+    async readBatches(topicName, partition, fromOffset = 0n) {
+        let batchStart;
+        if (!!fromOffset) {
+            batchStart = await this.#getBatchStart(topicName, partition, fromOffset)
+        } else {
+            batchStart = 0;
+        }
+
+        // TODO error?
+        if (batchStart === null) {
+            return { batches: [], baseOffset: -1 }
+        }
+
+        // TODO error handling/mapping
+        const data = await this.#read(topicName, partition, batchStart);
         const batches = [];
         let batchOffset = 0;
-        let baseOffset = -1n;
+        let baseOffset = 0n;
         while (batchOffset < data.length) {
             const { value: batch, size } = RecordBatchHeader.deserialize(data, batchOffset);
             if (batchOffset === 0) {
                 baseOffset = batch.baseOffset;
             }
-            batches.push(data.subarray(batchOffset, batchOffset + size + batch.batchLength))
-            batchOffset += size + batch.batchLength
+            batches.push(data.subarray(batchOffset, batchOffset + size + batch.batchLength));
+            batchOffset += size + batch.batchLength;
         }
-
         return {
             batches: batches.slice(Number(fromOffset - baseOffset)),
             baseOffset: baseOffset + fromOffset
@@ -76,23 +124,23 @@ export default class LogController {
 
     // TODO clarify record vs. metadata record
     async write(topicName, partition, batch) {
-        // TODO this is absolutely not going to scale,
-        // need to use writeable streams in the end
-        // but for now just want to get the pieces
-        // working under low load and then transition
-        // to promise- or callback-based IO
-
-        // TODO index
-
         // TODO custom mutex implementation that can take a key (i.e. the func params)
         const lockKey = [topicName, partition]
         if (!this.#locks[lockKey]) {
             this.#locks[lockKey] = new Mutex();
         }
 
-        await this.#locks[lockKey].runExclusive(() => {
+        await this.#locks[lockKey].runExclusive(async () => {
             const offset = this.metadata.nextOffset(topicName);
-            appendFileSync(this.#getLogFileName(topicName, partition), batch.serialize(offset));
+            // TODO error handling
+            const logFile = this.#getLogFileName(topicName, partition);
+            const { size } = await stat(logFile);
+            await appendFile(logFile, batch.serialize(offset));
+            // TODO tighten up index data structure - max log size here ~2GB
+            const indexEntry = Buffer.alloc(12);
+            indexEntry.writeBigInt64BE(offset);
+            indexEntry.writeInt32BE(size, 8);
+            await appendFile(this.#getLogIndexName(topicName, partition), indexEntry);
             this.metadata.incrementOffset(topicName);
         });
     }
